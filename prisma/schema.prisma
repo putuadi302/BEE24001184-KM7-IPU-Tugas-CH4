@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int           @id @default(autoincrement())
+  name      String
+  email     String        @unique
+  password  String
+  accounts  BankAccount[] // One-to-Many relationship dengan BankAccount
+  profile   Profile?      @relation(fields: [profileId], references: [id])
+  profileId Int?          @unique // Foreign key untuk Profile, harus unik untuk hubungan One-to-One
+}
+
+model BankAccount {
+  id                   Int           @id @default(autoincrement())
+  bank_name            String
+  bank_account_number  String        @unique
+  balance              Float
+  user                 User          @relation(fields: [userId], references: [id])
+  userId               Int // Foreign key ke User
+  outgoingTransactions Transaction[] @relation("SourceAccount") // Many-to-Many via Transactions
+  incomingTransactions Transaction[] @relation("DestinationAccount") // Many-to-Many via Transactions
+}
+
+model Profile {
+  id              Int    @id @default(autoincrement())
+  identity_type   String
+  identity_number String
+  address         String
+  user            User? // Hanya mendeklarasikan relasi tanpa fields dan references
+}
+
+model Transaction {
+  id                   Int         @id @default(autoincrement())
+  sourceAccount        BankAccount @relation("SourceAccount", fields: [sourceAccountId], references: [id])
+  sourceAccountId      Int // Foreign key ke BankAccount (source)
+  destinationAccount   BankAccount @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
+  destinationAccountId Int // Foreign key ke BankAccount (destination)
+  amount               Float
+}
